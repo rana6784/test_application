@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:test_application/chatting.dart';
 import 'package:test_application/database_service.dart';
 
 class Verification extends StatefulWidget {
@@ -11,8 +13,13 @@ class Verification extends StatefulWidget {
 class _VerificationState extends State<Verification> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
-
   final _dbService = DatabaseService();
+  final CollectionReference user = FirebaseFirestore.instance.collection(
+    'user',
+  );
+  void deleteuser(docId) {
+    user.doc(docId).delete();
+  }
 
   @override
   void dispose() {
@@ -181,11 +188,101 @@ class _VerificationState extends State<Verification> {
           ),
         ],
       ),
-      body: Center(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddNoteDialog(context),
         backgroundColor: Colors.blue[900],
         child: Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      extendBody: true,
+      body: StreamBuilder(
+        stream: user.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+              itemCount: snapshot.data?.docs.length,
+              itemBuilder: (context, index) {
+                final DocumentSnapshot usersnap = snapshot.data!.docs[index];
+                return Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(color: Colors.grey, blurRadius: 10),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                usersnap['name'],
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              usersnap['phone'].toString(),
+                              style: TextStyle(fontSize: 18),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Chatting(),
+                              ),
+                            );
+                          },
+                          child: Container(),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/update',
+                                  arguments: {
+                                    'name': usersnap['name'],
+                                    'phone': usersnap['phone'].toString(),
+                                    'id': usersnap.id,
+                                  },
+                                );
+                              },
+                              icon: Icon(Icons.edit),
+                              iconSize: 30,
+                              color: Colors.blue,
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                deleteuser(usersnap.id);
+                              },
+                              icon: Icon(Icons.delete),
+                              iconSize: 30,
+                              color: Colors.red,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }
+          return Container();
+        },
       ),
     );
   }
@@ -198,3 +295,4 @@ class AppUser {
   AppUser({required this.name, required this.phone});
   Map<String, dynamic> toMap() => {"name": name, "phone": phone};
 }
+        
